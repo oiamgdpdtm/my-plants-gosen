@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>観葉植物ケア - 五泉市白山</title>
+  <style>
+    :root {
+      --bg-main: #f4f7f4; --card-bg: #ffffff; --primary: #2e7d32;
+      --primary-light: #e8f5e9; --text: #2c3e50; --text-sub: #607d8b;
+      --border: #e0e0e0; --accent: #0288d1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text); padding: 16px; padding-bottom: 40px; }
+    header { text-align: center; margin-bottom: 20px; }
+    h1 { color: var(--primary); font-size: 1.5rem; margin-bottom: 4px; }
+    p.subtitle { color: var(--text-sub); font-size: 0.85rem; }
+    .month-selector { background: var(--card-bg); padding: 12px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 10px; }
+    .month-selector select { padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 1rem; font-weight: bold; color: var(--primary); }
+    .climate-advice { font-size: 0.9rem; color: var(--text); line-height: 1.4; }
+    .plant-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .plant-card { background: var(--card-bg); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
+    .plant-img { width: 100%; height: 180px; object-fit: cover; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center; color: var(--text-sub); font-size: 0.9rem; }
+    .plant-content { padding: 16px; flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
+    .plant-name { font-size: 1.2rem; font-weight: bold; color: var(--primary); }
+    .plant-tag { font-size: 0.8rem; background: var(--primary-light); color: var(--primary); padding: 2px 8px; border-radius: 4px; display: inline-block; width: fit-content; }
+    .info-row { font-size: 0.85rem; color: var(--text-sub); display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 4px; }
+    .info-value { color: var(--text); font-weight: 500; }
+    .memo-box { background: #fafafa; padding: 8px; border-radius: 6px; border-left: 3px solid var(--primary); font-size: 0.85rem; margin-top: 4px; }
+    .btn-group { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+    button { padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+    .btn-water { background: var(--accent); color: white; }
+    .btn-photo { background: #f0f0f0; color: var(--text); border: 1px solid var(--border); }
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🪴 My Plants (五泉市白山)</h1>
+    <p class="subtitle">北五泉駅周辺の住宅環境・気候に合わせたお手入れ管理</p>
+  </header>
+  <div class="month-selector">
+    <label for="monthSelect">今月:</label>
+    <select id="monthSelect" onchange="updateClimateAdvice()">
+      <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11" selected>11月</option><option value="12">12月</option>
+    </select>
+    <div id="climateAdviceText" class="climate-advice">読み込み中...</div>
+  </div>
+  <div class="plant-grid" id="plantGrid"></div>
+  <script>
+    const climateData = {
+      1: "冬本番。窓際からのコールドドラフトに注意。夜間は部屋の中央へ。水やりは控えめに。",
+      2: "寒さのピーク。暖房による乾燥対策としてぬるま湯での葉水が効果的。",
+      3: "春の兆し。水やりのペースを徐々に戻す。",
+      4: "新芽の季節。室内での水やり頻度を少し増やす。",
+      5: "生育旺盛期。土の表面が乾いたらたっぷり水やり。",
+      6: "梅雨時期。風通しを良くして蒸れを防ぐ。",
+      7: "夏の猛暑。エアコンの風が直接当たらない場所に配置。",
+      8: "厳暑。締め切った部屋の高湿度と高温に注意。",
+      9: "残暑から秋へ。夏の疲れが出やすい時期。",
+      10: "秋深まる。最低気温が下がってくるため防寒準備。",
+      11: "初冬の冷え込み。五泉市の冬に備え、水やりを控えめに。",
+      12: "本格的な冬。エアコン暖房による乾燥を防ぐため葉水を行う。"
+    };
+    const initialPlants = [
+      { id: 1, name: "ガジュマル", tag: "多肉・観葉", waterFreq: "7〜10日に1回", lastWatered: "2026-11-01", memo: "耐寒性高め。乾燥に強いが冬の過湿に注意。", img: "" },
+      { id: 2, name: "エバーフレッシュ", tag: "繊細・夜閉じる", waterFreq: "4〜6日に1回", lastWatered: "2026-11-01", memo: "水切れで葉が落ちる。夜間は葉を閉じる。", img: "" },
+      { id: 3, name: "サンスベリア", tag: "乾燥重視", waterFreq: "冬はほぼ断水", lastWatered: "2026-10-25", memo: "寒さに弱い。冬場は完全に乾かして温かい場所へ。", img: "" },
+      { id: 4, name: "ポトス", tag: "つる性・強健", waterFreq: "5〜7日に1回", lastWatered: "2026-11-01", memo: "耐陰性あり。伸びすぎた葉はカットして水挿しも可能。", img: "" },
+      { id: 5, name: "ベンガレンシス", tag: "ゴムの木・人気", waterFreq: "7日に1回", lastWatered: "2026-10-28", memo: "ホコリを定期的に拭き取る。", img: "" }
+    ];
+    let plants = JSON.parse(localStorage.getItem('my_gosen_plants')) || initialPlants;
+    function savePlants() { localStorage.setItem('my_gosen_plants', JSON.stringify(plants)); }
+    function updateClimateAdvice() {
+      document.getElementById('climateAdviceText').innerText = climateData[document.getElementById('monthSelect').value];
+    }
+    function renderPlants() {
+      const grid = document.getElementById('plantGrid');
+      grid.innerHTML = '';
+      plants.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'plant-card';
+        card.innerHTML = `
+          ${p.img ? `<img src="${p.img}" class="plant-img" alt="${p.name}">` : `<div class="plant-img">📷 写真未設定</div>`}
+          <div class="plant-content">
+            <div class="plant-name">${p.name}</div>
+            <span class="plant-tag">${p.tag}</span>
+            <div class="info-row" style="margin-top:8px;"><span>水やり目安:</span><span class="info-value">${p.waterFreq}</span></div>
+            <div class="info-row"><span>前回水やり:</span><span class="info-value">${p.lastWatered || '未記録'}</span></div>
+            <div class="memo-box">💡 ${p.memo}</div>
+            <div class="btn-group">
+              <button class="btn-water" onclick="waterPlant(${p.id})">💧 今日水やりした</button>
+              <button class="btn-photo" onclick="document.getElementById('file-${p.id}').click()">📷 写真を変更</button>
+              <input type="file" id="file-${p.id}" accept="image/*" onchange="uploadPhoto(event, ${p.id})">
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+    function waterPlant(id) {
+      const today = new Date().toISOString().split('T')[0];
+      const plant = plants.find(p => p.id === id);
+      if (plant) { plant.lastWatered = today; savePlants(); renderPlants(); }
+    }
+    function uploadPhoto(event, id) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const plant = plants.find(p => p.id === id);
+          if (plant) { plant.img = e.target.result; savePlants(); renderPlants(); }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+    updateClimateAdvice();
+    renderPlants();
+  </script>
+</body>
+</html>
